@@ -3,250 +3,198 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Forest Game Base</title>
+<title>Forest Game Fixed</title>
 
 <style>
-body {
-margin: 0;
-overflow: hidden;
-background: #87b97f;
-touch-action: none;
-}
-
-#ui {
-position: absolute;
-top: 10px;
-left: 10px;
-color: white;
-font-family: sans-serif;
-text-shadow: 2px 2px 4px black;
-z-index: 10;
-}
+body { margin:0; overflow:hidden; background:#87b97f; touch-action:none; }
 
 #joystick {
-position: absolute;
-bottom: 40px;
-left: 40px;
-width: 120px;
-height: 120px;
-border-radius: 50%;
-background: rgba(255,255,255,0.2);
+position:absolute;
+bottom:40px;
+left:40px;
+width:120px;
+height:120px;
+border-radius:50%;
+background:rgba(255,255,255,0.2);
 }
 
 #stick {
-position: absolute;
-width: 60px;
-height: 60px;
-left: 30px;
-top: 30px;
-border-radius: 50%;
-background: rgba(255,255,255,0.5);
+position:absolute;
+width:60px;
+height:60px;
+left:30px;
+top:30px;
+border-radius:50%;
+background:rgba(255,255,255,0.5);
 }
 </style>
 </head>
 
 <body>
-<div id="ui">🌲 Explore e sobreviva</div>
+
 <div id="joystick"><div id="stick"></div></div>
 
 <script type="module">
 import * as THREE from "https://unpkg.com/three@0.164.1/build/three.module.js";
 
-/* ================= SCENE ================= */
+/* SCENE */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87b97f);
-scene.fog = new THREE.Fog(0x87b97f, 20, 80);
 
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
-/* ================= LIGHT ================= */
-const ambient = new THREE.AmbientLight(0xffffff, 0.7);
-scene.add(ambient);
+/* LIGHT */
+scene.add(new THREE.AmbientLight(0xffffff,0.7));
 
-const sun = new THREE.DirectionalLight(0xffe0b0, 1.2);
+const sun = new THREE.DirectionalLight(0xffffff,1);
 sun.position.set(10,20,10);
-sun.castShadow = true;
 scene.add(sun);
 
-/* ================= GROUND ================= */
+/* GROUND */
 const ground = new THREE.Mesh(
 new THREE.PlaneGeometry(200,200),
 new THREE.MeshStandardMaterial({color:0x4c8c4a})
 );
 ground.rotation.x = -Math.PI/2;
-ground.receiveShadow = true;
 scene.add(ground);
 
-/* ================= PLAYER ================= */
-const player = new THREE.Group();
-
-const body = new THREE.Mesh(
+/* PLAYER */
+const player = new THREE.Mesh(
 new THREE.CapsuleGeometry(0.5,1),
 new THREE.MeshStandardMaterial({color:0x2d5a27})
 );
-body.castShadow = true;
-
-const head = new THREE.Mesh(
-new THREE.SphereGeometry(0.35),
-new THREE.MeshStandardMaterial({color:0xffcc99})
-);
-head.position.y = 1.2;
-
-player.add(body, head);
 scene.add(player);
 
-/* ================= WORLD ================= */
-function createTree(x,z){
-const tree = new THREE.Group();
-
-const trunk = new THREE.Mesh(
+/* TREES */
+for(let i=0;i<40;i++){
+const tree = new THREE.Mesh(
 new THREE.CylinderGeometry(0.2,0.3,2),
 new THREE.MeshStandardMaterial({color:0x8b5a2b})
 );
-
-const leaves = new THREE.Mesh(
-new THREE.SphereGeometry(1.2),
-new THREE.MeshStandardMaterial({color:0x2e8b57})
-);
-
-leaves.position.y = 1.5;
-trunk.castShadow = true;
-leaves.castShadow = true;
-
-tree.add(trunk, leaves);
-tree.position.set(x,1,z);
-
+tree.position.set((Math.random()-0.5)*100,1,(Math.random()-0.5)*100);
 scene.add(tree);
 }
 
-// árvores
-for(let i=0;i<50;i++){
-createTree(
-(Math.random()-0.5)*100,
-(Math.random()-0.5)*100
-);
-}
+/* INPUT */
+let inputX=0, inputZ=0;
+const keys={};
 
-/* ================= CONTROLS ================= */
-let inputX = 0;
-let inputZ = 0;
+addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
+addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 
-const keys = {};
+/* JOYSTICK */
+const stick=document.getElementById("stick");
+const joystick=document.getElementById("joystick");
 
-addEventListener("keydown", e=>keys[e.key.toLowerCase()] = true);
-addEventListener("keyup", e=>keys[e.key.toLowerCase()] = false);
+let dragging=false, center={x:0,y:0};
 
-/* ================= JOYSTICK ================= */
-const stick = document.getElementById("stick");
-const joystick = document.getElementById("joystick");
-
-let dragging = false;
-let center = {x:0,y:0};
-
-joystick.addEventListener("touchstart", e=>{
-dragging = true;
-const rect = joystick.getBoundingClientRect();
-center.x = rect.left + rect.width/2;
-center.y = rect.top + rect.height/2;
+joystick.addEventListener("touchstart",e=>{
+dragging=true;
+const r=joystick.getBoundingClientRect();
+center.x=r.left+r.width/2;
+center.y=r.top+r.height/2;
 });
 
-addEventListener("touchmove", e=>{
+addEventListener("touchmove",e=>{
 if(!dragging) return;
 
-const touch = e.touches[0];
-let dx = touch.clientX
-center.x;
-let dy = touch.clientY
-center.y;
-const dist = Math.hypot(dx,dy);
-const max = 40;
+const t=e.touches[0];
+let dx=t.clientX-center.x;
+let dy=t.clientY-center.y;
 
-if(dist > max){
-dx *= max/dist;
-dy *= max/dist;
-}
+const max=40;
+const dist=Math.hypot(dx,dy);
 
-stick.style.transform = `translate(${dx}px, ${dy}px)`;
+if(dist>max){ dx*=max/dist; dy*=max/dist; }
 
-inputX = dx / max;
-inputZ = -(dy / max); // CORRETO
+stick.style.transform=`translate(${dx}px,${dy}px)`;
+
+inputX=dx/max;
+inputZ=-(dy/max);
+
+if(Math.abs(inputX)<0.1) inputX=0;
+if(Math.abs(inputZ)<0.1) inputZ=0;
 });
 
-addEventListener("touchend", ()=>{
-dragging = false;
-inputX = 0;
-inputZ = 0;
-stick.style.transform = "translate(0,0)";
+addEventListener("touchend",()=>{
+dragging=false;
+inputX=0;
+inputZ=0;
+stick.style.transform="translate(0,0)";
 });
 
-/* ================= MOVEMENT ================= */
-const velocity = new THREE.Vector3();
+/* MOVEMENT */
+const velocity=new THREE.Vector3();
+const direction=new THREE.Vector3();
 
 function updateMovement(){
 
-// teclado
-if(!dragging){
-inputX = (keys["d"]?1:0)
-(keys["a"]?1:0);
-inputZ = (keys["s"]?1:0)
-(keys["w"]?1:0);
-}
-// direção da câmera
-const forward = new THREE.Vector3();
+let kx=(keys["d"]?1:0)-(keys["a"]?1:0);
+let kz=(keys["s"]?1:0)-(keys["w"]?1:0);
+
+let x=dragging?inputX:kx;
+let z=dragging?inputZ:kz;
+
+if(Math.abs(x)<0.05) x=0;
+if(Math.abs(z)<0.05) z=0;
+
+const forward=new THREE.Vector3();
 camera.getWorldDirection(forward);
-forward.y = 0;
+forward.y=0;
 forward.normalize();
 
-const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
+const right=new THREE.Vector3().crossVectors(forward,new THREE.Vector3(0,1,0)).normalize();
 
-const move = new THREE.Vector3();
-move.addScaledVector(forward, inputZ);
-move.addScaledVector(right, inputX);
+direction.set(0,0,0);
+direction.addScaledVector(forward,z);
+direction.addScaledVector(right,x);
 
-if(move.length() > 0){
-move.normalize();
-}
+if(direction.length()>0) direction.normalize();
 
-velocity.lerp(move.multiplyScalar(0.15), 0.2);
+const speed=0.15;
+const target=direction.multiplyScalar(speed);
+
+velocity.lerp(target,0.2);
+
+if(direction.length()===0) velocity.multiplyScalar(0.85);
+
+if(velocity.length()<0.001) velocity.set(0,0,0);
+
 player.position.add(velocity);
 
-// rotação
-if(velocity.length() > 0.01){
-const angle = Math.atan2(velocity.x, velocity.z);
-player.rotation.y = angle;
+if(velocity.length()>0.01){
+const angle=Math.atan2(velocity.x,velocity.z);
+player.rotation.y += (angle-player.rotation.y)*0.2;
 }
 }
 
-/* ================= CAMERA ================= */
+/* CAMERA */
 function updateCamera(){
-const offset = new THREE.Vector3(0,3,-6);
-const target = player.position.clone().add(offset);
+const offset=new THREE.Vector3(0,3,-6);
+const target=player.position.clone().add(offset);
 
-camera.position.lerp(target, 0.1);
-camera.lookAt(player.position.x, player.position.y+1, player.position.z);
+camera.position.lerp(target,0.1);
+camera.lookAt(player.position);
 }
 
-/* ================= LOOP ================= */
+/* LOOP */
 function animate(){
 requestAnimationFrame(animate);
-
 updateMovement();
 updateCamera();
-
-renderer.render(scene, camera);
+renderer.render(scene,camera);
 }
-
 animate();
 
-/* ================= RESIZE ================= */
-addEventListener("resize", ()=>{
-camera.aspect = innerWidth/innerHeight;
+/* RESIZE */
+addEventListener("resize",()=>{
+camera.aspect=innerWidth/innerHeight;
 camera.updateProjectionMatrix();
-renderer.setSize(innerWidth, innerHeight);
+renderer.setSize(innerWidth,innerHeight);
 });
 </script>
 </body>
