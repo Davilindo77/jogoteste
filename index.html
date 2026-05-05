@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Forest Survival</title>
+<title>Forest Visual Upgrade</title>
 
 <style>
 body { margin:0; overflow:hidden; background:#87b97f; touch-action:none; }
@@ -41,12 +41,7 @@ background:rgba(255,255,255,0.5);
 
 <body>
 
-<div id="ui">
-🌲 Madeira: <span id="wood">0</span><br>
-🪨 Pedra: <span id="stone">0</span><br>
-🔥 Objetivo: 20 madeira + 10 pedra
-</div>
-
+<div id="ui">🌲 Explorando floresta...</div>
 <div id="joystick"><div id="stick"></div></div>
 
 <script type="module">
@@ -55,29 +50,37 @@ import * as THREE from "https://unpkg.com/three@0.164.1/build/three.module.js";
 /* SCENE */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87b97f);
-scene.fog = new THREE.Fog(0x87b97f, 30, 150);
+scene.fog = new THREE.Fog(0x87b97f, 40, 200);
 
+/* CAMERA */
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
 
+/* RENDER */
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
-/* LIGHT */
-scene.add(new THREE.AmbientLight(0xffffff,0.7));
+/* LIGHTING (MELHORADO) */
+scene.add(new THREE.AmbientLight(0xbfdac5,0.6));
 
-const sun = new THREE.DirectionalLight(0xffe0b0,1.2);
-sun.position.set(20,30,10);
+const sun = new THREE.DirectionalLight(0xffe6b0,1.5);
+sun.position.set(30,50,20);
 sun.castShadow = true;
 scene.add(sun);
 
-/* GROUND */
+/* GROUND COM TEXTURA */
+const loader = new THREE.TextureLoader();
+const grassTex = loader.load("https://threejs.org/examples/textures/terrain/grasslight-big.jpg");
+grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
+grassTex.repeat.set(40,40);
+
 const ground = new THREE.Mesh(
-new THREE.PlaneGeometry(300,300),
-new THREE.MeshStandardMaterial({color:0x4c8c4a})
+new THREE.PlaneGeometry(500,500),
+new THREE.MeshStandardMaterial({map:grassTex})
 );
 ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
 scene.add(ground);
 
 /* PLAYER */
@@ -92,51 +95,80 @@ const head = new THREE.Mesh(
 new THREE.SphereGeometry(0.35),
 new THREE.MeshStandardMaterial({color:0xffcc99})
 );
-head.position.y = 1.2;
 
+head.position.y = 1.2;
 player.add(body, head);
 scene.add(player);
 
-/* RESOURCES */
-let wood = 0;
-let stone = 0;
-
-const woodUI = document.getElementById("wood");
-const stoneUI = document.getElementById("stone");
-
-const trees = [];
-const rocks = [];
-
-/* TREES */
+/* 🌲 ÁRVORES MELHORADAS */
 function createTree(x,z){
-const tree = new THREE.Mesh(
-new THREE.CylinderGeometry(0.2,0.3,2),
-new THREE.MeshStandardMaterial({color:0x8b5a2b})
+const tree = new THREE.Group();
+
+const trunk = new THREE.Mesh(
+new THREE.CylinderGeometry(0.2,0.3,3),
+new THREE.MeshStandardMaterial({color:0x6b4423})
 );
 
+const leaves = new THREE.Mesh(
+new THREE.SphereGeometry(1.5 + Math.random()),
+new THREE.MeshStandardMaterial({
+color: new THREE.Color().setHSL(0.3, 0.6, 0.3 + Math.random()*0.2)
+})
+);
+
+leaves.position.y = 2.5;
+
+tree.add(trunk, leaves);
 tree.position.set(x,1,z);
+
+trunk.castShadow = true;
+leaves.castShadow = true;
+
 scene.add(tree);
-trees.push(tree);
 }
 
-for(let i=0;i<50;i++){
-createTree((Math.random()-0.5)*200,(Math.random()-0.5)*200);
+for(let i=0;i<120;i++){
+createTree((Math.random()-0.5)*400,(Math.random()-0.5)*400);
 }
 
-/* ROCKS */
-for(let i=0;i<40;i++){
+/* 🪨 PEDRAS MELHORADAS */
+for(let i=0;i<80;i++){
 const rock = new THREE.Mesh(
-new THREE.DodecahedronGeometry(0.5 + Math.random()),
-new THREE.MeshStandardMaterial({color:0x888888})
+new THREE.DodecahedronGeometry(0.6 + Math.random()),
+new THREE.MeshStandardMaterial({color:0x777777, roughness:1})
 );
 
-rock.position.set((Math.random()-0.5)*200,0.5,(Math.random()-0.5)*200);
+rock.position.set(
+(Math.random()-0.5)*400,
+0.5,
+(Math.random()-0.5)*400
+);
+
+rock.scale.y *= 0.6;
+
+rock.castShadow = true;
 scene.add(rock);
-rocks.push(rock);
+}
+
+/* 🌱 GRAMA (DETALHE QUE FAZ DIFERENÇA) */
+for(let i=0;i<200;i++){
+const grass = new THREE.Mesh(
+new THREE.PlaneGeometry(1,1),
+new THREE.MeshBasicMaterial({color:0x3a7a3a, side:THREE.DoubleSide})
+);
+
+grass.position.set(
+(Math.random()-0.5)*400,
+0.5,
+(Math.random()-0.5)*400
+);
+
+grass.rotation.y = Math.random()*Math.PI;
+scene.add(grass);
 }
 
 /* INPUT */
-let inputX=0, inputZ=0;
+let inputX=0,inputZ=0;
 const keys={};
 
 addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
@@ -146,7 +178,7 @@ addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 const stick=document.getElementById("stick");
 const joystick=document.getElementById("joystick");
 
-let dragging=false, center={x:0,y:0};
+let dragging=false,center={x:0,y:0};
 
 joystick.addEventListener("touchstart",()=>{
 dragging=true;
@@ -157,8 +189,8 @@ center.y=r.top+r.height/2;
 
 addEventListener("touchmove",e=>{
 if(!dragging) return;
-
 const t=e.touches[0];
+
 let dx=t.clientX-center.x;
 let dy=t.clientY-center.y;
 
@@ -180,12 +212,11 @@ inputZ=0;
 stick.style.transform="translate(0,0)";
 });
 
-/* MOVEMENT */
+/* MOVIMENTO (mantido estável) */
 const velocity=new THREE.Vector3();
 const direction=new THREE.Vector3();
 
 function updateMovement(){
-
 let kx=(keys["d"]?1:0)-(keys["a"]?1:0);
 let kz=(keys["w"]?1:0)-(keys["s"]?1:0);
 
@@ -205,36 +236,13 @@ direction.addScaledVector(right,x);
 
 if(direction.length()>0) direction.normalize();
 
-velocity.lerp(direction.multiplyScalar(0.18),0.2);
-
+velocity.lerp(direction.multiplyScalar(0.2),0.2);
 player.position.add(velocity);
 
 if(velocity.length()>0.01){
 const angle=Math.atan2(velocity.x,velocity.z);
 player.rotation.y += (angle-player.rotation.y)*0.2;
 }
-}
-
-/* COLETA */
-function collectResources(){
-
-trees.forEach((tree,i)=>{
-if(tree.position.distanceTo(player.position)<2){
-scene.remove(tree);
-trees.splice(i,1);
-wood+=5;
-woodUI.textContent=wood;
-}
-});
-
-rocks.forEach((rock,i)=>{
-if(rock.position.distanceTo(player.position)<2){
-scene.remove(rock);
-rocks.splice(i,1);
-stone+=3;
-stoneUI.textContent=stone;
-}
-});
 }
 
 /* CAMERA */
@@ -249,15 +257,13 @@ camera.lookAt(player.position);
 /* LOOP */
 function animate(){
 requestAnimationFrame(animate);
-
 updateMovement();
-collectResources();
 updateCamera();
-
 renderer.render(scene,camera);
 }
 animate();
 
+/* RESIZE */
 addEventListener("resize",()=>{
 camera.aspect=innerWidth/innerHeight;
 camera.updateProjectionMatrix();
