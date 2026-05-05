@@ -1,229 +1,253 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Survival Melhorado</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Forest Game Base</title>
 
 <style>
-body { margin:0; overflow:hidden; background:black; }
+body {
+margin: 0;
+overflow: hidden;
+background: #87b97f;
+touch-action: none;
+}
 
 #ui {
-position:absolute;
-top:10px;
-left:10px;
-color:white;
-font-family:sans-serif;
+position: absolute;
+top: 10px;
+left: 10px;
+color: white;
+font-family: sans-serif;
+text-shadow: 2px 2px 4px black;
+z-index: 10;
 }
 
-#crosshair {
-position:absolute;
-top:50%;
-left:50%;
-width:6px;
-height:6px;
-background:white;
-transform:translate(-50%,-50%);
-border-radius:50%;
+#joystick {
+position: absolute;
+bottom: 40px;
+left: 40px;
+width: 120px;
+height: 120px;
+border-radius: 50%;
+background: rgba(255,255,255,0.2);
+}
+
+#stick {
+position: absolute;
+width: 60px;
+height: 60px;
+left: 30px;
+top: 30px;
+border-radius: 50%;
+background: rgba(255,255,255,0.5);
 }
 </style>
-
 </head>
+
 <body>
-
-<div id="ui"></div>
-<div id="crosshair"></div>
-
-<script type="importmap">
-{
-"imports": {
-"three": "https://unpkg.com/three@0.160.0/build/three.module.js"
-}
-}
-</script>
+<div id="ui">🌲 Explore e sobreviva</div>
+<div id="joystick"><div id="stick"></div></div>
 
 <script type="module">
-import * as THREE from 'three';
+import * as THREE from "https://unpkg.com/three@0.164.1/build/three.module.js";
 
-// ===== CENA =====
+/* ================= SCENE ================= */
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb, 20, 120);
+scene.background = new THREE.Color(0x87b97f);
+scene.fog = new THREE.Fog(0x87b97f, 20, 80);
 
-// câmera
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
-camera.position.set(0,2,5);
-
-// renderer
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.7;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-
 document.body.appendChild(renderer.domElement);
 
-// luz
-const sun = new THREE.DirectionalLight(0xffffff, 2.5);
-sun.position.set(50,100,50);
+/* ================= LIGHT ================= */
+const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(0xffe0b0, 1.2);
+sun.position.set(10,20,10);
+sun.castShadow = true;
 scene.add(sun);
 
-scene.add(new THREE.HemisphereLight(0x87ceeb,0x444444,1));
-
-// ===== TERRENO COM ONDULAÇÃO REAL =====
-const size = 200;
-const geo = new THREE.PlaneGeometry(size,size,100,100);
-
-for(let i=0;i<geo.attributes.position.count;i++){
-let x = geo.attributes.position.getX(i);
-let z = geo.attributes.position.getY(i);
-
-let y = Math.sin(x*0.05)*2 + Math.cos(z*0.05)*2;
-geo.attributes.position.setZ(i, y);
-}
-
-geo.computeVertexNormals();
-
+/* ================= GROUND ================= */
 const ground = new THREE.Mesh(
-geo,
-new THREE.MeshStandardMaterial({color:0x3f8f4f})
+new THREE.PlaneGeometry(200,200),
+new THREE.MeshStandardMaterial({color:0x4c8c4a})
 );
-
 ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
 scene.add(ground);
 
-// ===== PLAYER =====
-let velocity = new THREE.Vector3();
-let keys = {};
-let stamina = 100;
+/* ================= PLAYER ================= */
+const player = new THREE.Group();
 
-// ===== INVENTÁRIO =====
-let inv = {wood:0, stone:0};
+const body = new THREE.Mesh(
+new THREE.CapsuleGeometry(0.5,1),
+new THREE.MeshStandardMaterial({color:0x2d5a27})
+);
+body.castShadow = true;
 
-// ===== RECURSOS =====
-let resources = [];
+const head = new THREE.Mesh(
+new THREE.SphereGeometry(0.35),
+new THREE.MeshStandardMaterial({color:0xffcc99})
+);
+head.position.y = 1.2;
 
+player.add(body, head);
+scene.add(player);
+
+/* ================= WORLD ================= */
 function createTree(x,z){
-const g = new THREE.Group();
+const tree = new THREE.Group();
 
 const trunk = new THREE.Mesh(
-new THREE.CylinderGeometry(0.3,0.4,2),
-new THREE.MeshStandardMaterial({color:0x5a3825})
+new THREE.CylinderGeometry(0.2,0.3,2),
+new THREE.MeshStandardMaterial({color:0x8b5a2b})
 );
-trunk.position.y = 1;
-g.add(trunk);
 
 const leaves = new THREE.Mesh(
-new THREE.SphereGeometry(1.5),
-new THREE.MeshStandardMaterial({color:0x1f7a3a})
+new THREE.SphereGeometry(1.2),
+new THREE.MeshStandardMaterial({color:0x2e8b57})
 );
-leaves.position.y = 3;
-g.add(leaves);
 
-g.position.set(x,0,z);
-scene.add(g);
+leaves.position.y = 1.5;
+trunk.castShadow = true;
+leaves.castShadow = true;
 
-resources.push({mesh:g,type:"wood",hp:4});
+tree.add(trunk, leaves);
+tree.position.set(x,1,z);
+
+scene.add(tree);
 }
 
-function createRock(x,z){
-const m = new THREE.Mesh(
-new THREE.DodecahedronGeometry(1),
-new THREE.MeshStandardMaterial({color:0x888888})
+// árvores
+for(let i=0;i<50;i++){
+createTree(
+(Math.random()-0.5)*100,
+(Math.random()-0.5)*100
 );
-m.position.set(x,1,z);
-scene.add(m);
-
-resources.push({mesh:m,type:"stone",hp:4});
 }
 
-// spawn
-for(let i=0;i<100;i++){
-createTree((Math.random()-0.5)*size,(Math.random()-0.5)*size);
-createRock((Math.random()-0.5)*size,(Math.random()-0.5)*size);
-}
+/* ================= CONTROLS ================= */
+let inputX = 0;
+let inputZ = 0;
 
-// ===== CONTROLES =====
-document.body.onclick = ()=>document.body.requestPointerLock();
+const keys = {};
 
-let rotX=0, rotY=0;
+addEventListener("keydown", e=>keys[e.key.toLowerCase()] = true);
+addEventListener("keyup", e=>keys[e.key.toLowerCase()] = false);
 
-document.addEventListener("mousemove", e=>{
-if(document.pointerLockElement){
-rotY -= e.movementX*0.002;
-rotX -= e.movementY*0.002;
-rotX = Math.max(-Math.PI/3, Math.min(Math.PI/3, rotX));
-}
+/* ================= JOYSTICK ================= */
+const stick = document.getElementById("stick");
+const joystick = document.getElementById("joystick");
+
+let dragging = false;
+let center = {x:0,y:0};
+
+joystick.addEventListener("touchstart", e=>{
+dragging = true;
+const rect = joystick.getBoundingClientRect();
+center.x = rect.left + rect.width/2;
+center.y = rect.top + rect.height/2;
 });
 
-document.addEventListener("keydown", e=>keys[e.code]=true);
-document.addEventListener("keyup", e=>keys[e.code]=false);
+addEventListener("touchmove", e=>{
+if(!dragging) return;
 
-// ===== RAYCAST (MIRA REAL) =====
-const raycaster = new THREE.Raycaster();
+const touch = e.touches[0];
+let dx = touch.clientX
+center.x;
+let dy = touch.clientY
+center.y;
+const dist = Math.hypot(dx,dy);
+const max = 40;
 
-function getTarget(){
-raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-const intersects = raycaster.intersectObjects(resources.map(r=>r.mesh), true);
-return intersects[0];
+if(dist > max){
+dx *= max/dist;
+dy *= max/dist;
 }
 
-// ===== LOOP =====
+stick.style.transform = `translate(${dx}px, ${dy}px)`;
+
+inputX = dx / max;
+inputZ = -(dy / max); // CORRETO
+});
+
+addEventListener("touchend", ()=>{
+dragging = false;
+inputX = 0;
+inputZ = 0;
+stick.style.transform = "translate(0,0)";
+});
+
+/* ================= MOVEMENT ================= */
+const velocity = new THREE.Vector3();
+
+function updateMovement(){
+
+// teclado
+if(!dragging){
+inputX = (keys["d"]?1:0)
+(keys["a"]?1:0);
+inputZ = (keys["s"]?1:0)
+(keys["w"]?1:0);
+}
+// direção da câmera
+const forward = new THREE.Vector3();
+camera.getWorldDirection(forward);
+forward.y = 0;
+forward.normalize();
+
+const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
+
+const move = new THREE.Vector3();
+move.addScaledVector(forward, inputZ);
+move.addScaledVector(right, inputX);
+
+if(move.length() > 0){
+move.normalize();
+}
+
+velocity.lerp(move.multiplyScalar(0.15), 0.2);
+player.position.add(velocity);
+
+// rotação
+if(velocity.length() > 0.01){
+const angle = Math.atan2(velocity.x, velocity.z);
+player.rotation.y = angle;
+}
+}
+
+/* ================= CAMERA ================= */
+function updateCamera(){
+const offset = new THREE.Vector3(0,3,-6);
+const target = player.position.clone().add(offset);
+
+camera.position.lerp(target, 0.1);
+camera.lookAt(player.position.x, player.position.y+1, player.position.z);
+}
+
+/* ================= LOOP ================= */
 function animate(){
 requestAnimationFrame(animate);
 
-camera.rotation.x = rotX;
-camera.rotation.y = rotY;
+updateMovement();
+updateCamera();
 
-// movimento fluido
-let speed = 0.15;
-
-if(keys["ShiftLeft"] && stamina>0){
-speed = 0.3;
-stamina -= 0.5;
-} else stamina += 0.3;
-
-stamina = Math.max(0,Math.min(100,stamina));
-
-if(keys["KeyW"]) camera.translateZ(-speed);
-if(keys["KeyS"]) camera.translateZ(speed);
-if(keys["KeyA"]) camera.translateX(-speed);
-if(keys["KeyD"]) camera.translateX(speed);
-
-// bater recurso (CLICK)
-if(keys["KeyE"]){
-let hit = getTarget();
-
-if(hit && hit.distance < 4){
-let obj = resources.find(r=>r.mesh===hit.object.parent || r.mesh===hit.object);
-
-if(obj){
-obj.hp--;
-
-// efeito de hit (balançar)
-obj.mesh.rotation.y += 0.2;
-
-if(obj.hp<=0){
-inv[obj.type]++;
-scene.remove(obj.mesh);
-resources = resources.filter(r=>r!==obj);
-}
-}
-}
-}
-
-// UI
-document.getElementById("ui").innerHTML =
-`⚡ Stamina: ${Math.floor(stamina)}<br>
-🌲 Madeira: ${inv.wood}<br>
-🪨 Pedra: ${inv.stone}<br><br>
-E = bater`;
-
-renderer.render(scene,camera);
+renderer.render(scene, camera);
 }
 
 animate();
 
+/* ================= RESIZE ================= */
+addEventListener("resize", ()=>{
+camera.aspect = innerWidth/innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(innerWidth, innerHeight);
+});
 </script>
 </body>
 </html>
