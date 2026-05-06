@@ -196,19 +196,6 @@ addEventListener("touchmove",e=>{
   lastTouch = t;
 });
 
-const t=e.touches[0];
-
-if(lastTouch){
-const dx=t.clientX-lastTouch.clientX;
-const dy=t.clientY-lastTouch.clientY;
-
-camYaw -= dx*0.005;
-camPitch -= dy*0.005;
-camPitch=Math.max(0.2,Math.min(1.2,camPitch));
-}
-
-lastTouch=t;
-});
 
 /* MOVIMENTO */
 const velocity=new THREE.Vector3();
