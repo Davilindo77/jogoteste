@@ -1,1 +1,47 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js' export function createCity(scene) { const groundGeometry = new THREE.PlaneGeometry(100, 100) const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x228822 }) const ground = new THREE.Mesh( groundGeometry, groundMaterial ) ground.rotation.x = -Math.PI / 2 scene.add(ground) for (let i = 0; i < 30; i++) { const buildingGeometry = new THREE.BoxGeometry( 2, Math.random() * 10 + 2, 2 ) const buildingMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 }) const building = new THREE.Mesh( buildingGeometry, buildingMaterial ) building.position.x = (Math.random() - 0.5) * 50 building.position.z = (Math.random() - 0.5) * 50 building.position.y = building.geometry.parameters.height / 2 scene.add(building) } } 
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js&#39;
+
+export function createCity(scene) {
+
+const groundGeometry = new THREE.PlaneGeometry(100, 100)
+
+const groundMaterial = new THREE.MeshStandardMaterial({
+color: 0x228822
+})
+
+const ground = new THREE.Mesh(
+groundGeometry,
+groundMaterial
+)
+
+ground.rotation.x = -Math.PI / 2
+
+scene.add(ground)
+
+for (let i = 0; i < 30; i++) {
+
+const buildingGeometry =
+new THREE.BoxGeometry(
+2,
+Math.random() * 10 + 2,
+2
+)
+
+const buildingMaterial =
+new THREE.MeshStandardMaterial({
+color: 0x888888
+})
+
+const building = new THREE.Mesh(
+buildingGeometry,
+buildingMaterial
+)
+
+building.position.x = (Math.random()
+0.5) * 50
+building.position.z = (Math.random()
+0.5) * 50
+building.position.y =
+building.geometry.parameters.height / 2
+scene.add(building)
+}
+}
