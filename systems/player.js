@@ -1,1 +1,16 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js' export function createPlayer() { const geometry = new THREE.BoxGeometry(1, 2, 1) const material = new THREE.MeshStandardMaterial({ color: 0xff0000 }) const player = new THREE.Mesh(geometry, material) player.position.y = 1 return player } 
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js&#39;
+
+export function createPlayer() {
+
+const geometry = new THREE.BoxGeometry(1, 2, 1)
+
+const material = new THREE.MeshStandardMaterial({
+color: 0xff0000
+})
+
+const player = new THREE.Mesh(geometry, material)
+
+player.position.y = 1
+
+return player
+}
